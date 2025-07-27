@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-time Notifications</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .status {
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .status.connected {
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            color: white;
+            animation: pulse 2s infinite;
+        }
+
+        .status.disconnected {
+            background: linear-gradient(135deg, #ff9a9e, #fecfef);
+            color: #721c24;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        button:hover:before {
+            left: 100%;
+        }
+
+        .connect-btn {
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            color: white;
+        }
+
+        .connect-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(79, 172, 254, 0.3);
+        }
+
+        .disconnect-btn {
+            background: linear-gradient(135deg, #ff9a9e, #fecfef);
+            color: #721c24;
+        }
+
+        .disconnect-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(255, 154, 158, 0.3);
+        }
+
+        .send-btn {
+            background: linear-gradient(135deg, #a8edea, #fed6e3);
+            color: #333;
+        }
+
+        .send-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(168, 237, 234, 0.3);
+        }
+
+        .notification-form {
+            background: rgba(255, 255, 255, 0.7);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid rgba(102, 126, 234, 0.2);
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            transform: scale(1.02);
+        }
+
+        .notifications {
+            max-height: 400px;
+            overflow-y: auto;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .notifications::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .notifications::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+        }
+
+        .notifications::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 10px;
+        }
+
+        .notification {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 15px;
+            animation: slideIn 0.5s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .notification:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #4facfe, #00f2fe);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .notification-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 16px;
+        }
+
+        .notification-message {
+            opacity: 0.9;
+            line-height: 1.4;
+        }
+
+        .notification-time {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-top: 8px;
+            text-align: right;
+        }
+
+        .no-notifications {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 40px;
+        }
+    </style>
+    <!-- Add SockJS and STOMP libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7/bundles/stomp.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>🔔 Real-time Notifications</h1>
+        
+        <div id="status" class="status disconnected">
+            Disconnected from server
+        </div>
+
+        <div class="controls">
+            <button id="connectBtn" class="connect-btn">Connect</button>
+            <button id="disconnectBtn" class="disconnect-btn">Disconnect</button>
+        </div>
+
+        <div class="notification-form">
+            <h3 style="margin-bottom: 15px; color: #333;">Send Notification</h3>
+            <div class="form-group">
+                <label for="title">Title:</label>
+                <input type="text" id="title" placeholder="Enter notification title">
+            </div>
+            <div class="form-group">
+                <label for="message">Message:</label>
+                <textarea id="message" rows="3" placeholder="Enter notification message"></textarea>
+            </div>
+            <button id="sendBtn" class="send-btn">Send Notification</button>
+        </div>
+
+        <div class="notifications" id="notifications">
+            <div class="no-notifications">No notifications yet. Connect to start receiving!</div>
+        </div>
+    </div>
+
+    <script>
+        class NotificationClient {
+            constructor() {
+                this.stompClient = null;
+                this.isConnected = false;
+                
+                // Get DOM elements
+                this.statusElement = document.getElementById('status');
+                this.connectBtn = document.getElementById('connectBtn');
+                this.disconnectBtn = document.getElementById('disconnectBtn');
+                this.sendBtn = document.getElementById('sendBtn');
+                this.titleInput = document.getElementById('title');
+                this.messageInput = document.getElementById('message');
+                this.notificationsContainer = document.getElementById('notifications');
+
+                // Bind event listeners
+                this.connectBtn.addEventListener('click', () => this.connect());
+                this.disconnectBtn.addEventListener('click', () => this.disconnect());
+                this.sendBtn.addEventListener('click', () => this.sendNotification());
+
+                // Initial state
+                this.updateStatus('Disconnected from server', false);
+            }
+
+            async connect() {
+                if (this.isConnected) return;
+
+                try {
+                    this.updateStatus('Connecting...', false);
+                    
+                    // Create SockJS connection
+                    const socket = new SockJS('http://localhost:8080/notifications');
+                    this.stompClient = new StompJs.Client({
+                        webSocketFactory: () => socket,
+                        debug: function (str) {
+                            console.log(str);
+                        },
+                        reconnectDelay: 5000,
+                        heartbeatIncoming: 4000,
+                        heartbeatOutgoing: 4000,
+                    });
+
+                    this.stompClient.onConnect = (frame) => {
+                        this.isConnected = true;
+                        this.updateStatus('Connected to server', true);
+                        this.addNotification('System', 'Welcome! You are now connected to real-time notifications.');
+                        
+                        // Subscribe to notifications topic
+                        this.stompClient.subscribe('/topic/notifications', (notification) => {
+                            const data = JSON.parse(notification.body);
+                            this.addNotification(data.title || 'Notification', data.message || 'No message');
+                        });
+
+                        // Load existing notifications
+                        this.loadExistingNotifications();
+                    };
+
+                    this.stompClient.onStompError = (frame) => {
+                        console.error('Broker reported error: ' + frame.headers['message']);
+                        console.error('Additional details: ' + frame.body);
+                        this.updateStatus('Connection error', false);
+                        this.addNotification('Error', 'Failed to connect to server.');
+                    };
+
+                    this.stompClient.onDisconnect = () => {
+                        this.isConnected = false;
+                        this.updateStatus('Disconnected from server', false);
+                        this.addNotification('System', 'Connection closed.');
+                    };
+
+                    this.stompClient.activate();
+
+                } catch (error) {
+                    console.error('Connection failed:', error);
+                    this.updateStatus('Connection failed', false);
+                }
+            }
+
+            disconnect() {
+                if (!this.isConnected || !this.stompClient) return;
+
+                this.stompClient.deactivate();
+                this.stompClient = null;
+                this.isConnected = false;
+                this.updateStatus('Disconnected from server', false);
+                this.addNotification('System', 'Disconnected from server.');
+            }
+
+            sendNotification() {
+                if (!this.isConnected || !this.stompClient) {
+                    alert('Please connect to the server first!');
+                    return;
+                }
+
+                const title = this.titleInput.value.trim();
+                const message = this.messageInput.value.trim();
+
+                if (!title || !message) {
+                    alert('Please enter both title and message!');
+                    return;
+                }
+
+                const notification = {
+                    title: title,
+                    message: message
+                };
+
+                try {
+                    // Send message to Spring Boot WebSocket endpoint
+                    this.stompClient.publish({
+                        destination: '/app/send',
+                        body: JSON.stringify(notification)
+                    });
+                    
+                    // Clear form
+                    this.titleInput.value = '';
+                    this.messageInput.value = '';
+                } catch (error) {
+                    console.error('Failed to send notification:', error);
+                    this.addNotification('Error', 'Failed to send notification.');
+                }
+            }
+
+            async loadExistingNotifications() {
+                try {
+                    const response = await fetch('http://localhost:8080/api/notifications');
+                    const notifications = await response.json();
+                    
+                    // Clear existing notifications
+                    this.notificationsContainer.innerHTML = '';
+                    
+                    if (notifications.length === 0) {
+                        this.notificationsContainer.innerHTML = '<div class="no-notifications">No notifications yet.</div>';
+                    } else {
+                        // Add notifications in reverse order (newest first)
+                        notifications.reverse().forEach(notif => {
+                            this.addNotification(notif.title, notif.message, false);
+                        });
+                    }
+                } catch (error) {
+                    console.error('Failed to load notifications:', error);
+                }
+            }
+
+            addNotification(title, message, animate = true) {
+                // Remove "no notifications" message if present
+                const noNotifications = this.notificationsContainer.querySelector('.no-notifications');
+                if (noNotifications) {
+                    noNotifications.remove();
+                }
+
+                const notification = document.createElement('div');
+                notification.className = 'notification';
+                
+                const now = new Date();
+                const timeString = now.toLocaleTimeString();
+                
+                notification.innerHTML = `
+                    <div class="notification-title">${title}</div>
+                    <div class="notification-message">${message}</div>
+                    <div class="notification-time">${timeString}</div>
+                `;
+
+                this.notificationsContainer.insertBefore(notification, this.notificationsContainer.firstChild);
+                
+                // Limit to 50 notifications
+                const notifications = this.notificationsContainer.querySelectorAll('.notification');
+                if (notifications.length > 50) {
+                    notifications[notifications.length - 1].remove();
+                }
+
+                if (animate) {
+                    notification.style.animation = 'slideIn 0.5s ease';
+                }
+
+                // Auto scroll to top for new notifications
+                this.notificationsContainer.scrollTop = 0;
+            }
+
+            updateStatus(message, connected) {
+                this.statusElement.textContent = message;
+                this.statusElement.className = `status ${connected ? 'connected' : 'disconnected'}`;
+                this.connectBtn.disabled = connected;
+                this.disconnectBtn.disabled = !connected;
+                this.sendBtn.disabled = !connected;
+            }
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', () => {
+            new NotificationClient();
+        });
+    </script>
+</body>
+</html>
